@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Pitch Log" />
+<meta name="theme-color" content="#0B3B4A" />
+<title>Pitch Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pitch: #0B3B4A;
+    --pitch-dark: #082C38;
+    --card: #123F4F;
+    --card-alt: #0F3644;
+    --line: #F4F1E8;
+    --line-dim: rgba(244,241,232,0.55);
+    --magenta: #E8386B;
+    --magenta-dim: rgba(232,56,107,0.18);
+    --amber: #E7A93E;
+    --green: #4FA97A;
+    --border: rgba(244,241,232,0.14);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--pitch); color: var(--line); font-family: 'Inter', sans-serif; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em; }
+  .header { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); padding: 20px 20px 18px; padding-top: calc(20px + env(safe-area-inset-top)); }
+  .header::before {
+    content: ""; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+    width: 260px; height: 260px; border-radius: 9999px; border: 2px solid var(--border); pointer-events: none;
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; position: relative; }
+  .title { font-size: 34px; line-height: 1; }
+  .subtitle { font-size: 12px; color: var(--line-dim); margin-top: 4px; }
+  .stat { text-align: right; }
+  .stat-num { font-size: 26px; color: var(--magenta); font-family: 'Bebas Neue', sans-serif; }
+  .stat-total { color: var(--line-dim); font-size: 16px; }
+  .stat-label { font-size: 11px; color: var(--line-dim); }
+  .tabs { display: flex; gap: 8px; margin-top: 18px; position: relative; }
+  .tab-btn {
+    display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 9999px;
+    font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--line-dim);
+  }
+  .tab-btn.active { background: var(--magenta); border-color: var(--magenta); color: var(--line); }
+  .content { padding: 18px 20px 60px; }
+  .week-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .week-btn { flex-shrink: 0; padding: 8px 16px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); font-size: 18px; font-family: 'Bebas Neue', sans-serif; color: var(--line); }
+  .week-btn.active { background: var(--magenta); border-color: var(--magenta); }
+  .phase-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .phase-badge { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: var(--magenta-dim); color: var(--magenta); letter-spacing: 0.08em; }
+  .phase-desc { font-size: 12px; color: var(--line-dim); }
+  .day-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .day-card { border-radius: 12px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  .day-card.complete { border-color: var(--green); }
+  .day-head { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: none; border: none; text-align: left; color: var(--line); }
+  .day-left { display: flex; align-items: center; gap: 12px; }
+  .day-badge { width: 36px; height: 36px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--card-alt); color: var(--line-dim); font-family: 'Bebas Neue', sans-serif; font-size: 15px; }
+  .day-badge.complete { background: var(--green); color: var(--pitch-dark); }
+  .day-name { font-size: 20px; line-height: 1; }
+  .day-focus { font-size: 12px; color: var(--line-dim); margin-top: 2px; }
+  .chev { color: var(--line-dim); transition: transform 0.2s; font-size: 12px; }
+  .chev.open { transform: rotate(180deg); }
+  .day-body { padding: 0 16px 16px; border-top: 1px solid var(--border); display: none; }
+  .day-body.open { display: block; padding-top: 12px; }
+  .field-label { font-size: 10px; text-transform: uppercase; font-weight: 600; color: var(--line-dim); letter-spacing: 0.06em; margin-bottom: 4px; }
+  .box { background: var(--card-alt); border-radius: 10px; padding: 12px; }
+  .ex-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .ex-name { font-size: 14px; font-weight: 600; }
+  .ex-presc { font-size: 12px; color: var(--line-dim); margin-top: 2px; }
+  .check-btn { width: 28px; height: 28px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent; border: 1px solid var(--border); color: var(--line-dim); }
+  .check-btn.done { background: var(--green); border-color: var(--green); color: var(--pitch-dark); }
+  .input-row { display: flex; gap: 8px; margin-top: 8px; }
+  input[type=text], textarea {
+    background: var(--card-alt); border: 1px solid var(--border); color: var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; width: 100%; font-family: 'Inter', sans-serif;
+  }
+  textarea { resize: none; }
+  .lift-title { font-size: 18px; margin-bottom: 8px; font-family: 'Bebas Neue', sans-serif; }
+  .opt-btn { display: block; width: 100%; text-align: left; background: var(--card-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--line); margin-bottom: 8px; }
+  .opt-btn.selected { border-color: var(--magenta); }
+  .opt-head { display: flex; align-items: center; justify-content: space-between; }
+  .opt-label { font-size: 12px; font-weight: 600; }
+  .opt-btn.selected .opt-label { color: var(--magenta); }
+  .opt-text { font-size: 12px; color: var(--line-dim); margin-top: 4px; }
+  .complete-btn { width: 100%; margin-top: 12px; padding: 10px; border-radius: 10px; font-weight: 600; font-size: 14px; background: var(--magenta); border: 1px solid var(--magenta); color: var(--line); }
+  .complete-btn.done { background: transparent; border-color: var(--border); }
+  .speed-block { margin-bottom: 16px; border-radius: 10px; padding: 12px; background: var(--card-alt); }
+  .speed-head { display: flex; align-items: center; justify-content: space-between; }
+  .speed-toggle { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 9999px; background: transparent; border: 1px solid var(--border); color: var(--line-dim); }
+  .speed-toggle.done { background: var(--green); border-color: var(--green); color: var(--pitch-dark); }
+  .speed-link { font-size: 12px; margin-top: 8px; color: var(--magenta); background: none; border: none; text-decoration: underline; padding: 0; }
+  .speed-detail { font-size: 12px; color: var(--line-dim); margin-top: 8px; }
+  .speed-detail p { margin: 4px 0; }
+  .speed-detail b { color: var(--line); }
+  .section-title { font-size: 20px; margin-bottom: 10px; font-family: 'Bebas Neue', sans-serif; }
+  .panel { border-radius: 12px; padding: 16px; background: var(--card); border: 1px solid var(--border); }
+  .bars { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--magenta); transition: height 0.3s; }
+  .bar.full { background: var(--green); }
+  .bar-label { font-size: 10px; color: var(--line-dim); margin-top: 4px; }
+  .empty-note { font-size: 12px; color: var(--line-dim); text-align: center; padding: 30px 10px; }
+  .legend { display: flex; gap: 14px; font-size: 11px; margin-top: 10px; justify-content: center; }
+  .legend span { display: flex; align-items: center; gap: 4px; color: var(--line-dim); }
+  .legend i { width: 10px; height: 10px; border-radius: 9999px; display: inline-block; }
+  .footnote { font-size: 11px; color: var(--line-dim); text-align: center; margin-top: 16px; }
+  .banner { padding: 8px 16px; text-align: center; font-size: 12px; font-weight: 600; background: var(--amber); color: var(--pitch-dark); }
+  .banner.hidden { display: none; }
+  .install-tip { margin: 16px 20px 0; padding: 12px; border-radius: 10px; background: var(--card-alt); border: 1px solid var(--border); font-size: 12px; color: var(--line-dim); }
+  .install-tip b { color: var(--line); }
+  .install-tip.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// PROGRAM DATA
+// ---------------------------------------------------------------------------
+const LIFTS = {
+  A: { title: "Lower Body Power", exercises: [
+    { name: "Back Squat", base: "3 x 10-12 @ RPE 6-7", strength: "4 x 6-8 @ RPE 7-8", power: "4 x 3-5 @ RPE 8 (explosive up)" },
+    { name: "Bulgarian Split Squat (ea. leg)", base: "3 x 10", strength: "3 x 8", power: "3 x 5" },
+    { name: "Trap Bar Jump Squat (light load)", base: "3 x 5 (sub-max)", strength: "4 x 4 (near-max)", power: "4 x 3 (max intent)" },
+    { name: "Standing Calf Raise", base: "3 x 15", strength: "3 x 12", power: "3 x 10" },
+    { name: "Barbell Hip Thrust", base: "3 x 10-12 @ RPE 6-7", strength: "4 x 6-8 @ RPE 7-8", power: "4 x 3-5 @ RPE 8" },
+  ]},
+  B: { title: "Upper Body & Rotational Power", exercises: [
+    { name: "Barbell Bench Press", base: "3 x 10-12 @ RPE 6-7", strength: "4 x 6-8 @ RPE 7-8", power: "4 x 3-5 @ RPE 8" },
+    { name: "Bent-Over Row", base: "3 x 10", strength: "4 x 8", power: "3 x 6" },
+    { name: "Med Ball Rotational Throw (ea. side)", base: "3 x 6", strength: "3 x 5", power: "4 x 4 (max intent)" },
+    { name: "Push Press", base: "3 x 10", strength: "3 x 6", power: "3 x 3-5 (explosive)" },
+    { name: "Face Pull", base: "3 x 15", strength: "3 x 12", power: "3 x 12" },
+    { name: "Pallof Press (ea. side)", base: "3 x 12", strength: "3 x 10", power: "3 x 8" },
+    { name: "Front/Side Plank (sec, ea. side)", base: "3 x 40s", strength: "3 x 45s", power: "3 x 30s + weighted" },
+  ]},
+  C: { title: "Posterior Chain & Unilateral", exercises: [
+    { name: "Trap Bar / Romanian Deadlift", base: "3 x 10-12 @ RPE 6-7", strength: "4 x 6-8 @ RPE 7-8", power: "4 x 3-5 @ RPE 8" },
+    { name: "Single-Leg RDL (ea. leg)", base: "3 x 10", strength: "3 x 8", power: "3 x 6" },
+    { name: "Walking Lunge (ea. leg)", base: "3 x 12", strength: "3 x 10", power: "3 x 8 (add load)" },
+    { name: "Nordic Hamstring Curl / Lying Leg Curl", base: "3 x 8", strength: "3 x 6-8", power: "3 x 5-6" },
+    { name: "Hanging Leg Raise", base: "3 x 10", strength: "3 x 12", power: "3 x 10 (slow eccentric)" },
+  ]},
+};
+const AEROBIC = {
+  1: { opt1: "1 min jog @ 5/10, 1 min walk @ 2/10 x10 (20 min total)", opt2: "15 min jog, comfortable pace, RPE 5-6" },
+  2: { opt1: "1 min run @ 7.5/10, 1 min jog @ 5/10, 1 min walk @ 2/10 x8 (24 min total)", opt2: "20 min jog, comfortable pace, RPE 5-6" },
+  3: { opt1: "1 min run @ 7.5/10, 2 min jog @ 5/10, 1 min walk @ 2/10 x6 (24 min total)", opt2: "25 min jog, comfortable pace, RPE 5-6" },
+  4: { opt1: "2 min run @ 7.5/10, 2 min jog @ 5/10, 1 min walk @ 2/10 x5 (25 min total)", opt2: "30 min jog, comfortable pace, RPE 5-6" },
+  5: { opt1: "2 min run @ 7.5/10, 2 min jog @ 5/10 x6 (30 min total)", opt2: "35 min jog, comfortable pace, RPE 5-6" },
+  6: { opt1: "2 min run @ 7.5/10, 2 min jog @ 5/10 x6 (30 min total)", opt2: "40 min jog, comfortable pace, RPE 5-6" },
+};
+const INTERVAL = {
+  1: { opt1: "1 min run @ 7/10, 1 min rest x8 (16 min total)", opt2: "Jog short sides, hard run long sides. Run 1 lap, rest 30s. Complete x4. Rest 3-5 min, repeat." },
+  2: { opt1: "1 min run @ 8/10, 1 min rest x8 (16 min total)", opt2: "Jog short sides, hard run long sides. Run 1 lap, rest 30s. Complete x5. Rest 3-5 min, repeat." },
+  3: { opt1: "2 min run @ 8-9/10, 2 min rest x4 (16 min total)", opt2: "Run 1 lap/rest 30s, run 2 laps/rest 60s, run 1 lap/rest 30s, run 2 laps/rest 60s. Rest 3-5 min, repeat." },
+  4: { opt1: "2 min run @ 8-9/10, 2 min rest x5 (20 min total)", opt2: "Same grid pattern as Week 3. Rest 3-5 min, repeat." },
+  5: { opt1: "3 min run @ 8-9/10, 3 min rest x4 (24 min total)", opt2: "Pyramid grids: 1 lap/30s, 2 laps/60s, 3 laps/90s, 2 laps/60s, 1 lap. Rest 3-5 min, repeat." },
+  6: { opt1: "3 min run @ 8-9/10, 3 min rest x4 (24 min total)", opt2: "Pyramid grids: 1 lap/30s, 2 laps/60s, 3 laps/90s, 2 laps/60s, 1 lap. Rest 3-5 min, repeat." },
+};
+const SPEED_SESSION = {
+  warmup: "Slow jog 200m. 10 squats, 10 lunges (ea. side), 10 glute bridges, 12 calf raises. 5 min stretching. 5 squat jumps, 3 broad jumps.",
+  drills: "Wall Drill 10ea · A March 2x10m · A Switch 2x10m · A Skip 2x10m · Straight Leg Bounds 2x10m · Single Leg Hops 2x10m ea. leg · Bounds 2x15m",
+  work: "10m acceleration x3 (rest 30s+) · 20m acceleration x3 (rest 45s+) · 40m sprint x3 (rest 60s+)",
+};
+const SCHEDULE = [
+  { day: 1, name: "Monday", type: "lift+speed", liftDay: "A", focus: "Speed + Lower Body", badge: "A" },
+  { day: 2, name: "Tuesday", type: "aerobic", focus: "Aerobic", badge: "AER" },
+  { day: 3, name: "Wednesday", type: "rest", focus: "Rest", badge: "RST" },
+  { day: 4, name: "Thursday", type: "lift", liftDay: "B", focus: "Upper Body & Rotational", badge: "B" },
+  { day: 5, name: "Friday", type: "interval", focus: "Intervals", badge: "INT" },
+  { day: 6, name: "Saturday", type: "lift", liftDay: "C", focus: "Posterior Chain & Unilateral", badge: "C" },
+  { day: 7, name: "Sunday", type: "easy", focus: "Easy / Optional", badge: "EZ" },
+];
+function phaseKey(week) { return week <= 1 ? "base" : week <= 4 ? "strength" : "power"; }
+function phaseLabel(week) { return week <= 1 ? "BASE" : week <= 4 ? "STRENGTH" : "POWER"; }
+function phaseDesc(week) {
+  const k = phaseKey(week);
+  if (k === "base") return "build work capacity, dial in movement";
+  if (k === "strength") return "heavier loads, chasing strength";
+  return "explosive intent, less volume";
+}
+
+const STORAGE_KEY = "pitch-log-v1";
+
+// ---------------------------------------------------------------------------
+// STATE (persisted with real localStorage — works standalone on-device)
+// ---------------------------------------------------------------------------
+let state = { tab: "week", week: 1, openDay: 1, logs: {}, saveError: false };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state.logs = parsed.logs || {};
+      state.week = parsed.week || 1;
+    }
+  } catch (e) {
+    console.error("load failed", e);
+  }
+}
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ logs: state.logs, week: state.week }));
+    state.saveError = false;
+  } catch (e) {
+    console.error("save failed", e);
+    state.saveError = true;
+  }
+}
+function logKey(week, day) { return "w" + week + "-d" + day; }
+function getLog(week, day) {
+  return state.logs[logKey(week, day)] || { completed: false, exercises: {}, option: null, notes: "" };
+}
+function updateLog(week, day, mutateFn) {
+  const key = logKey(week, day);
+  const current = getLog(week, day);
+  const next = mutateFn(JSON.parse(JSON.stringify(current)));
+  state.logs[key] = next;
+  saveState();
+}
+
+// ---------------------------------------------------------------------------
+// RENDER
+// ---------------------------------------------------------------------------
+function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function render() {
+  const totalDays = 42;
+  const completedDays = Object.values(state.logs).filter(l => l.completed).length;
+
+  let html = "";
+  html += `<div class="banner ${state.saveError ? "" : "hidden"}">Couldn't save your last change — your browser storage may be full or blocked.</div>`;
+  html += `<div class="header">
+    <div class="header-row">
+      <div>
+        <div class="title display">PITCH LOG</div>
+        <div class="subtitle">6-week offseason tracker</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">${completedDays}<span class="stat-total">/${totalDays}</span></div>
+        <div class="stat-label">sessions logged</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn ${state.tab === "week" ? "active" : ""}" onclick="setTab('week')">THIS WEEK</button>
+      <button class="tab-btn ${state.tab === "progress" ? "active" : ""}" onclick="setTab('progress')">PROGRESS</button>
+    </div>
+  </div>`;
+
+  html += `<div class="content">`;
+  html += state.tab === "week" ? renderWeekView() : renderProgressView();
+  html += `</div>`;
+
+  document.getElementById("app").innerHTML = html;
+}
+
+function renderWeekView() {
+  let html = `<div class="week-row">`;
+  for (let w = 1; w <= 6; w++) {
+    html += `<button class="week-btn ${state.week === w ? "active" : ""}" onclick="setWeek(${w})">WK ${w}</button>`;
+  }
+  html += `</div>`;
+  html += `<div class="phase-row">
+    <span class="phase-badge">${phaseLabel(state.week)} PHASE</span>
+    <span class="phase-desc">${phaseDesc(state.week)}</span>
+  </div>`;
+
+  html += `<div class="day-list">`;
+  SCHEDULE.forEach(d => {
+    const log = getLog(state.week, d.day);
+    const isOpen = state.openDay === d.day;
+    html += `<div class="day-card ${log.completed ? "complete" : ""}">
+      <button class="day-head" onclick="toggleDay(${d.day})">
+        <div class="day-left">
+          <div class="day-badge ${log.completed ? "complete" : ""}">${log.completed ? "✓" : d.badge}</div>
+          <div>
+            <div class="day-name display">${d.name.toUpperCase()}</div>
+            <div class="day-focus">${d.focus}</div>
+          </div>
+        </div>
+        <div class="chev ${isOpen ? "open" : ""}">▼</div>
+      </button>
+      <div class="day-body ${isOpen ? "open" : ""}">
+        ${isOpen ? renderDayBody(d, log) : ""}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderDayBody(d, log) {
+  if (d.type === "lift" || d.type === "lift+speed") return renderLiftForm(d, log);
+  if (d.type === "aerobic") return renderSteadyForm(d, log, AEROBIC, "AEROBIC", "Option 1", "Option 2");
+  if (d.type === "interval") return renderSteadyForm(d, log, INTERVAL, "INTERVAL", "Road/Park", "Field/Court");
+  return renderRestForm(d, log);
+}
+
+function renderSpeedBlock(log) {
+  const done = !!(log.exercises && log.exercises.__speed);
+  return `<div class="speed-block">
+    <div class="speed-head">
+      <div class="display" style="font-size:18px;">SPEED SESSION</div>
+      <button class="speed-toggle ${done ? "done" : ""}" onclick="toggleSpeed(${state.week},${state.openDay})">${done ? "✓ Done" : "Mark done"}</button>
+    </div>
+    <button class="speed-link" onclick="toggleSpeedDetail(this)">show warm-up / drills</button>
+    <div class="speed-detail" style="display:none;">
+      <p><b>Warm-up:</b> ${SPEED_SESSION.warmup}</p>
+      <p><b>Drills:</b> ${SPEED_SESSION.drills}</p>
+      <p><b>Work:</b> ${SPEED_SESSION.work}</p>
+    </div>
+  </div>`;
+}
+
+function renderLiftForm(d, log) {
+  const lift = LIFTS[d.liftDay];
+  const phase = phaseKey(state.week);
+  let html = d.type === "lift+speed" ? renderSpeedBlock(log) : "";
+  html += `<div class="lift-title">${lift.title.toUpperCase()}</div>`;
+  lift.exercises.forEach(ex => {
+    const st = (log.exercises && log.exercises[ex.name]) || { weight: "", reps: "", done: false };
+    const exId = ex.name.replace(/[^a-zA-Z0-9]/g, "_");
+    html += `<div class="box" style="margin-bottom:10px;">
+      <div class="ex-row">
+        <div>
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-presc">${ex[phase]}</div>
+        </div>
+        <button class="check-btn ${st.done ? "done" : ""}" onclick="toggleExDone('${escJs(ex.name)}')">✓</button>
+      </div>
+      <div class="input-row">
+        <div style="flex:1;">
+          <div class="field-label">Weight</div>
+          <input type="text" inputmode="decimal" placeholder="kg" value="${esc(st.weight)}"
+            oninput="updateExField('${escJs(ex.name)}','weight',this.value)">
+        </div>
+        <div style="flex:1;">
+          <div class="field-label">Reps</div>
+          <input type="text" inputmode="numeric" placeholder="reps" value="${esc(st.reps)}"
+            oninput="updateExField('${escJs(ex.name)}','reps',this.value)">
+        </div>
+      </div>
+    </div>`;
+  });
+  html += renderDayFooter(log);
+  return html;
+}
+
+function renderSteadyForm(d, log, table, label, opt1Label, opt2Label) {
+  const wk = table[state.week];
+  let html = `<div class="lift-title">${label} — WEEK ${state.week}</div>`;
+  [["opt1", opt1Label, wk.opt1], ["opt2", opt2Label, wk.opt2]].forEach(([key, lbl, text]) => {
+    const selected = log.option === key;
+    html += `<button class="opt-btn ${selected ? "selected" : ""}" onclick="selectOption('${key}')">
+      <div class="opt-head">
+        <span class="opt-label">${lbl}</span>
+        ${selected ? "<span>✓</span>" : ""}
+      </div>
+      <div class="opt-text">${text}</div>
+    </button>`;
+  });
+  html += renderDayFooter(log);
+  return html;
+}
+
+function renderRestForm(d, log) {
+  const text = d.type === "rest"
+    ? "Full day off. Light stretching or a walk is fine — no structured training."
+    : "Easy 20-30 min jog (RPE 4-5), or swap in an off-feet alternative if you're cooked.";
+  let html = `<div style="font-size:12px;color:var(--line-dim);margin-bottom:12px;">${text}</div>`;
+  html += renderDayFooter(log);
+  return html;
+}
+
+function renderDayFooter(log) {
+  return `<div style="margin-top:12px;">
+    <div class="field-label">Notes</div>
+    <textarea rows="2" placeholder="how did it feel?" oninput="updateNotes(this.value)">${esc(log.notes)}</textarea>
+    <button class="complete-btn ${log.completed ? "done" : ""}" onclick="toggleComplete()">
+      ${log.completed ? "Marked complete — tap to undo" : "Mark day complete"}
+    </button>
+  </div>`;
+}
+
+function renderProgressView() {
+  const weeks = [1,2,3,4,5,6];
+  const adherence = weeks.map(w => {
+    const count = SCHEDULE.filter(d => getLog(w, d.day).completed).length;
+    return { week: w, pct: Math.round((count/7)*100) };
+  });
+
+  let html = `<div class="section-title">WEEKLY ADHERENCE</div><div class="panel"><div class="bars">`;
+  adherence.forEach(a => {
+    html += `<div class="bar-col">
+      <div class="bar ${a.pct === 100 ? "full" : ""}" style="height:${Math.max(a.pct,4)}%"></div>
+      <div class="bar-label">W${a.week}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  function num(v) { const n = parseFloat(v); return isNaN(n) ? null : n; }
+  const points = { Squat: [], Bench: [], Hinge: [] };
+  weeks.forEach(w => {
+    points.Squat.push(num(getLog(w,1).exercises && getLog(w,1).exercises["Back Squat"] && getLog(w,1).exercises["Back Squat"].weight));
+    points.Bench.push(num(getLog(w,4).exercises && getLog(w,4).exercises["Barbell Bench Press"] && getLog(w,4).exercises["Barbell Bench Press"].weight));
+    points.Hinge.push(num(getLog(w,6).exercises && getLog(w,6).exercises["Trap Bar / Romanian Deadlift"] && getLog(w,6).exercises["Trap Bar / Romanian Deadlift"].weight));
+  });
+  const hasData = Object.values(points).some(arr => arr.some(v => v != null));
+
+  html += `<div class="section-title" style="margin-top:24px;">MAIN LIFTS (TOP SET, KG)</div><div class="panel">`;
+  if (hasData) {
+    html += renderLineChart(points);
+    html += `<div class="legend">
+      <span><i style="background:var(--magenta)"></i>Squat</span>
+      <span><i style="background:var(--amber)"></i>Bench</span>
+      <span><i style="background:var(--green)"></i>Hinge</span>
+    </div>`;
+  } else {
+    html += `<div class="empty-note">Log a weight for Back Squat, Bench Press, or the hinge lift and it'll show up here.</div>`;
+  }
+  html += `</div>`;
+  html += `<div class="footnote">Data is stored on this device only, using this browser's local storage — nothing is shared or synced. Local files can lose that storage unexpectedly on iPhone, so back up below.</div>`;
+
+  html += `<div class="section-title" style="margin-top:24px;">BACKUP & RESTORE</div>`;
+  html += `<div class="panel">
+    <div style="font-size:12px;color:var(--line-dim);margin-bottom:8px;">Copy this text into Notes (or anywhere safe) every so often. If saving ever stops working, paste it back into the box below to restore everything.</div>
+    <div class="field-label">Your data — tap the box, select all, then copy</div>
+    <textarea id="backupBox" rows="4" readonly onclick="this.select()">${esc(JSON.stringify({ logs: state.logs, week: state.week }))}</textarea>
+    <div class="field-label" style="margin-top:12px;">Restore from a backup</div>
+    <textarea id="restoreBox" rows="4" placeholder="paste your backup text here"></textarea>
+    <button class="complete-btn" style="margin-top:8px;" onclick="restoreBackup()">Restore this backup</button>
+  </div>`;
+  return html;
+}
+
+function restoreBackup() {
+  const box = document.getElementById("restoreBox");
+  const raw = (box.value || "").trim();
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    state.logs = parsed.logs || {};
+    state.week = parsed.week || 1;
+    saveState();
+    render();
+    setTab("progress");
+    alert("Restored — your data is back.");
+  } catch (e) {
+    alert("Couldn't read that backup text. Make sure you pasted the whole thing, unedited.");
+  }
+}
+
+function renderLineChart(points) {
+  const w = 300, h = 160, pad = 24;
+  const allVals = Object.values(points).flat().filter(v => v != null);
+  const max = allVals.length ? Math.max(...allVals) * 1.15 : 100;
+  const min = allVals.length ? Math.min(0, Math.min(...allVals) * 0.9) : 0;
+  function x(i) { return pad + (i / 5) * (w - pad * 2); }
+  function y(v) { return h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2); }
+  const colors = { Squat: "#E8386B", Bench: "#E7A93E", Hinge: "#4FA97A" };
+  let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:180px;">`;
+  for (let i = 0; i <= 4; i++) {
+    const gy = pad + (i / 4) * (h - pad * 2);
+    svg += `<line x1="${pad}" y1="${gy}" x2="${w-pad}" y2="${gy}" stroke="rgba(244,241,232,0.1)" stroke-dasharray="3 3"/>`;
+  }
+  Object.keys(points).forEach(key => {
+    const arr = points[key];
+    let path = "";
+    let started = false;
+    arr.forEach((v, i) => {
+      if (v == null) return;
+      const cmd = started ? "L" : "M";
+      path += `${cmd}${x(i)},${y(v)} `;
+      started = true;
+    });
+    if (path) svg += `<path d="${path}" fill="none" stroke="${colors[key]}" stroke-width="2"/>`;
+    arr.forEach((v, i) => {
+      if (v == null) return;
+      svg += `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="${colors[key]}"/>`;
+    });
+  });
+  for (let i = 0; i <= 5; i++) {
+    svg += `<text x="${x(i)}" y="${h-4}" font-size="9" fill="rgba(244,241,232,0.55)" text-anchor="middle">W${i+1}</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+// ---------------------------------------------------------------------------
+// EVENT HANDLERS
+// ---------------------------------------------------------------------------
+function escJs(s) { return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
+function setTab(t) { state.tab = t; render(); }
+function setWeek(w) { state.week = w; state.openDay = 1; saveState(); render(); }
+function toggleDay(day) { state.openDay = state.openDay === day ? null : day; render(); }
+function toggleSpeed(week, day) {
+  updateLog(week, day, cur => { cur.exercises = cur.exercises || {}; cur.exercises.__speed = !cur.exercises.__speed; return cur; });
+  render();
+}
+function toggleSpeedDetail(btn) {
+  const detail = btn.nextElementSibling;
+  const isOpen = detail.style.display !== "none";
+  detail.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "show warm-up / drills" : "hide drills";
+}
+function toggleExDone(name) {
+  updateLog(state.week, state.openDay, cur => {
+    cur.exercises = cur.exercises || {};
+    const st = cur.exercises[name] || { weight: "", reps: "", done: false };
+    cur.exercises[name] = { ...st, done: !st.done };
+    return cur;
+  });
+  render();
+}
+function updateExField(name, field, value) {
+  updateLog(state.week, state.openDay, cur => {
+    cur.exercises = cur.exercises || {};
+    const st = cur.exercises[name] || { weight: "", reps: "", done: false };
+    cur.exercises[name] = { ...st, [field]: value };
+    return cur;
+  });
+  // no render() here — keep focus/cursor in the input intact
+}
+function selectOption(key) {
+  updateLog(state.week, state.openDay, cur => { cur.option = cur.option === key ? null : key; return cur; });
+  render();
+}
+function updateNotes(value) {
+  updateLog(state.week, state.openDay, cur => { cur.notes = value; return cur; });
+  // no render() here — keep focus/cursor in the textarea intact
+}
+function toggleComplete() {
+  updateLog(state.week, state.openDay, cur => { cur.completed = !cur.completed; return cur; });
+  render();
+}
+
+// flush on background/close, just in case
+document.addEventListener("visibilitychange", saveState);
+window.addEventListener("pagehide", saveState);
+
+loadState();
+render();
+</script>
+</body>
+</html>
